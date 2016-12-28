@@ -1,0 +1,309 @@
+<!doctype html>
+<html lang="en">
+
+	<head>
+		<meta charset="utf-8">
+
+		<title>Open Up</title>
+
+		<meta name="description" content="Open Up : Lesson 3 LDAP servers">
+		<meta name="author" content="Tellier Benoit">
+
+		<meta name="apple-mobile-web-app-capable" content="yes" />
+		<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+
+		<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, minimal-ui">
+
+		<link rel="stylesheet" href="css/reveal.css">
+		<link rel="stylesheet" href="css/theme/black.css" id="theme">
+
+		<!-- Code syntax highlighting -->
+		<link rel="stylesheet" href="lib/css/zenburn.css">
+
+		<!-- Printing and PDF exports -->
+		<script>
+			var link = document.createElement( 'link' );
+			link.rel = 'stylesheet';
+			link.type = 'text/css';
+			link.href = window.location.search.match( /print-pdf/gi ) ? 'css/print/pdf.css' : 'css/print/paper.css';
+			document.getElementsByTagName( 'head' )[0].appendChild( link );
+		</script>
+
+	
+	</head>
+
+	<body>
+
+		<div class="reveal">
+
+			<!-- Any section element inside of this container is displayed as a slide -->
+			<div class="slides">
+
+
+<section>
+<h1>Open-up</h1>
+
+<h2>Course 12 : BTRFS</h2>
+
+<img data-src="large.png">
+
+<p>Speaker : <a>Benoit Tellier</a></p>
+
+</section>
+
+
+
+
+
+
+
+
+
+<section>
+<h2>Why this presentation ?</h2>
+
+<ul>
+<li>Presentation of BTRfs capabilities</li>
+<li>Managing BTRFS</li>
+</ul>
+</section>
+
+<!--
+=============================================
+=============================================
+=============================================
+=============================================
+=============================================
+=============================================
+-->
+
+<section>
+
+  <section><h1>BTRFS feauture</h1></section>
+
+  <section>
+    <p>Developpement started in 2010</p>
+    <p>2^64 max files</p>
+    <p>Taille maximale : 16 Eio (2^60 bytes)</p>
+  </section>
+
+  <section>
+    <p>Live defragmentation</p>
+  </section>
+
+  <section>
+    <p>Copy on write</p>
+    <img data-src="copy_on_write_scale.png"/>
+  </section>
+
+  <section>
+    <p>Block checksum and correction</p>
+    <img data-src="one-bit-error.png"/>
+  </section>
+
+  <section>
+    <p>Snapshots</p>
+    <p class="fragment">Snapshots can be exported to a file, and sent other the network</p>
+    <img data-src="btrfs_snapshot.jpg"/>
+  </section>
+
+  <section>
+    <p>Easy RAID set-up</p>
+    <img data-src="raid.jpe"/>
+  </section>
+
+  <section>
+    <p>Compression</p>
+    <p class="fragment">LZO, Snappy, gzip and LZ4</p>
+    <p class="fragment">Beware of cascading writes</p>
+  </section>
+
+  <section>
+    <p>And many others...</p>
+  </section>
+
+</section>
+
+<!--
+=============================================
+=============================================
+=============================================
+=============================================
+=============================================
+=============================================
+-->
+
+<section>
+
+<section>
+  <h1>Using BTRFS</h1>
+</section>
+
+<section>
+<h2>Creating BTRFS</h2>
+<pre><code>
+$ mkfs.btrfs /dev/sdX
+
+# To specify default block size
+$ mkfs.btrfs -L mylabel -n 16k /dev/partition
+</code></pre>
+</section>
+
+<section>
+<h2>Managing RAID</h2>
+<pre><code>
+mkfs.btrfs -d raid0 -m raid1 /dev/part1 /dev/part2
+</code></pre>
+</section>
+
+<section>
+<h2>Converting EXT* to BTRFS</h2>
+<pre><code>
+btrfs-convert /dev/partition
+</code></pre>
+</section>
+
+<section>
+<h2>Disable COW for file/directory</h2>
+<pre><code>
+$ chattr +C /dir/file
+</code></pre>
+</section>
+
+<section>
+<h2>Compression</h2>
+<pre><code>
+# Mount options
+compress=zlib or compress=lzo
+
+# To compress old files
+$ btrfs filesystem defragment -r -v -clzo /
+</code></pre>
+</section>
+
+<section>
+<h2>Sub-volumes</h2>
+<pre><code>
+$ btrfs subvolume create /path/to/subvolume
+
+$ btrfs subvolume list -p path
+
+$ btrfs subvolume delete /path/to/subvolume
+</code></pre>
+</section>
+
+<section>
+<h2>Used space</h2>
+<pre><code>
+$ df -h /
+Filesystem      Size  Used Avail Use% Mounted on
+/dev/sda3       119G  3.0G  116G   3% /
+</code></pre>
+<pre><code>
+$ btrfs filesystem df /
+Data: total=3.01GB, used=2.73GB
+System: total=4.00MB, used=16.00KB
+Metadata: total=1.01GB, used=181.83MB
+</pre></code>
+</section>
+
+<section>
+<h2>Live defragmentation</h2>
+<pre><code>
+# Metadata of the folder
+$ btrfs filesystem defragment /
+
+# Also data
+$ btrfs filesystem defragment -r -v /
+</pre></code>
+</section>
+
+<section>
+<h2>Checking check-sum + correction</h2>
+<pre><code>
+To start a (background) scrub on the filesystem which contains /:
+
+$ btrfs scrub start /
+
+To check the status of a running scrub:
+
+$ btrfs scrub status /
+</pre></code>
+</section>
+
+<section>
+<h2>Rebalance data</h2>
+<pre><code>
+# btrfs balance start /
+# btrfs balance status /
+</pre></code>
+</section>
+
+<section>
+<h2>Snapshot</h2>
+<p>A snapshot is simply a subvolume that shares its data (and metadata) with some other subvolume, using btrfs's COW capabilities.</p>
+<pre><code>
+$ btrfs subvolume snapshot source [dest/]name
+
+-r option for read-only
+</pre></code>
+</section>
+
+</section>
+<!--
+=============================================
+=============================================
+=============================================
+=============================================
+=============================================
+=============================================
+-->
+
+
+<section>
+	<h1>Questions ?</h1>
+</section>
+
+
+
+
+
+
+
+
+			</div>
+
+		</div>
+
+		<script src="lib/js/head.min.js"></script>
+		<script src="js/reveal.js"></script>
+
+		<script>
+
+			// Full list of configuration options available at:
+			// https://github.com/hakimel/reveal.js#configuration
+			Reveal.initialize({
+				slideNumber: true,
+				controls: true,
+				progress: true,
+				history: true,
+				center: true,
+                                
+
+				transition: 'slide', // none/fade/slide/convex/concave/zoom
+
+				// Optional reveal.js plugins
+				dependencies: [
+					{ src: 'lib/js/classList.js', condition: function() { return !document.body.classList; } },
+					{ src: 'plugin/markdown/marked.js', condition: function() { return !!document.querySelector( '[data-markdown]' ); } },
+					{ src: 'plugin/markdown/markdown.js', condition: function() { return !!document.querySelector( '[data-markdown]' ); } },
+					{ src: 'plugin/highlight/highlight.js', async: true, condition: function() { return !!document.querySelector( 'pre code' ); }, callback: function() { hljs.initHighlightingOnLoad(); } },
+					{ src: 'plugin/zoom-js/zoom.js', async: true },
+					{ src: 'plugin/notes/notes.js', async: true }
+				]
+			});
+
+		</script>
+
+	</body>
+</html>
